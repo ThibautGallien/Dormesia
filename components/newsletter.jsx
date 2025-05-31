@@ -22,24 +22,34 @@ const Newsletter = ({
     setIsSubmitting(true);
 
     try {
-      // TODO: Intégrer avec ActiveCampaign
-      // const response = await fetch('/api/newsletter', {
-      //   method: 'POST',
-      //   headers: { 'Content-Type': 'application/json' },
-      //   body: JSON.stringify({ email })
-      // });
+      console.log("📧 Soumission newsletter...");
 
-      // Simulation pour l'instant
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-
-      setEmail("");
-
-      toast({
-        title: "🎉 Inscription réussie !",
-        description:
-          "Vous recevrez bientôt votre premier guide gratuit par email.",
+      const response = await fetch("/api/newsletter", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email,
+          source: variant === "hero" ? "hero" : "footer",
+        }),
       });
+
+      const data = await response.json();
+
+      if (data.success) {
+        setEmail("");
+
+        toast({
+          title: data.alreadySubscribed
+            ? "🎉 Déjà inscrit !"
+            : "🎉 Inscription réussie !",
+          description: data.message,
+        });
+      } else {
+        throw new Error(data.error || "Erreur d'inscription");
+      }
     } catch (error) {
+      console.error("❌ Erreur newsletter:", error);
+
       toast({
         title: "Erreur d'inscription",
         description: "Une erreur s'est produite. Veuillez réessayer.",

@@ -67,8 +67,25 @@ export default function QuizPage() {
   async function onEmailSubmit(values) {
     setIsSubmitting(true);
     try {
-      // TODO: Intégrer avec ActiveCampaign
+      // Sauvegarder email et nom pour plus tard
       setUserEmail(values.email);
+
+      // Optionnel: Ajouter à la newsletter immédiatement
+      try {
+        await fetch("/api/newsletter", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            email: values.email,
+            name: values.name,
+            source: "quiz",
+          }),
+        });
+        console.log("✅ Email ajouté à la newsletter");
+      } catch (error) {
+        console.log("⚠️ Erreur newsletter (non bloquant):", error);
+      }
+
       setStep(1); // Commencer les questions
 
       toast({
@@ -101,20 +118,17 @@ export default function QuizPage() {
     }
   }
 
-  function calculateResults(allAnswers) {
+  async function calculateResults(allAnswers) {
     let score = 0;
     let sleepProfile = {};
 
     // Analyse plus détaillée des réponses
-
-    // Q1: Qualité subjective
     const quality = allAnswers.q1;
     if (quality === "très-bien") score += 4;
     else if (quality === "bien") score += 3;
     else if (quality === "moyen") score += 2;
     else score += 1;
 
-    // Q2: Durée de sommeil
     const duration = allAnswers.q2;
     sleepProfile.duration = duration;
     if (duration === "7-8" || duration === "8-9") score += 4;
@@ -122,7 +136,6 @@ export default function QuizPage() {
     else if (duration === "5-6") score += 2;
     else score += 1;
 
-    // Q3: Latence d'endormissement
     const latency = allAnswers.q3;
     sleepProfile.latency = latency;
     if (latency === "moins-10") score += 4;
@@ -130,7 +143,6 @@ export default function QuizPage() {
     else if (latency === "20-30") score += 2;
     else score += 1;
 
-    // Q4: Réveil matinal
     const morning = allAnswers.q4;
     sleepProfile.morningFeeling = morning;
     if (morning === "très-reposé") score += 4;
@@ -138,7 +150,6 @@ export default function QuizPage() {
     else if (morning === "légèrement-fatigué") score += 2;
     else score += 1;
 
-    // Q5: Réveils nocturnes
     const waking = allAnswers.q5;
     sleepProfile.nightWaking = waking;
     if (waking === "jamais") score += 4;
@@ -146,7 +157,6 @@ export default function QuizPage() {
     else if (waking === "parfois") score += 2;
     else score += 1;
 
-    // Q6: Impact sur la journée
     const impact = allAnswers.q6;
     sleepProfile.dayImpact = impact;
     if (impact === "aucun") score += 4;
@@ -216,7 +226,7 @@ export default function QuizPage() {
       affiliateProducts = ["formation-sommeil", "consultation-expert"];
     }
 
-    setQuizResults({
+    const results = {
       score,
       percentage,
       category,
@@ -225,17 +235,50 @@ export default function QuizPage() {
       affiliateProducts,
       sleepProfile,
       userEmail,
-    });
+      name: emailForm.getValues("name"),
+      answers: allAnswers,
+    };
 
+    setQuizResults(results);
     setStep(7); // Results step
 
-    // TODO: Envoyer les résultats à ActiveCampaign avec tags
-    sendResultsToEmail({ percentage, category, sleepProfile, userEmail });
+    // 🚀 NOUVEAU: Sauvegarder dans MongoDB + ActiveCampaign
+    await sendResultsToDatabase(results);
   }
 
-  async function sendResultsToEmail(results) {
-    // TODO: Intégration ActiveCampaign + email avec PDF personnalisé
-    console.log("Envoi des résultats:", results);
+  async function sendResultsToDatabase(results) {
+    try {
+      console.log("💾 Sauvegarde des résultats...");
+
+      const response = await fetch("/api/quiz-results", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(results),
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        console.log("✅ Résultats sauvegardés:", data.data);
+
+        toast({
+          title: "✅ Résultats sauvegardés !",
+          description:
+            "Vos résultats ont été envoyés par email et sauvegardés.",
+        });
+      } else {
+        throw new Error(data.error || "Erreur de sauvegarde");
+      }
+    } catch (error) {
+      console.error("❌ Erreur sauvegarde:", error);
+
+      toast({
+        title: "⚠️ Attention",
+        description:
+          "Vos résultats sont affichés mais la sauvegarde a échoué. Contactez-nous si besoin.",
+        variant: "destructive",
+      });
+    }
   }
 
   function restartQuiz() {
