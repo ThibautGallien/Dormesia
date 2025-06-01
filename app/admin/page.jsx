@@ -1,25 +1,23 @@
 "use client";
 
-export default function AdminPage() {
-  // Redirection vers ton CMS admin
-  if (typeof window !== "undefined") {
-    window.location.href =
-      "https://lesprosdecherbourg-admin.vercel.app/?site=dormesia";
-  }
+import dynamic from "next/dynamic";
 
-  return (
-    <div className="min-h-screen flex items-center justify-center">
-      <div className="text-center">
-        <h1 className="text-2xl font-bold mb-4">Redirection vers l'admin...</h1>
-        <p>
-          <a
-            href="https://lesprosdecherbourg-admin.vercel.app/?site=dormesia"
-            className="text-blue-600 hover:underline"
-          >
-            Cliquez ici si la redirection ne fonctionne pas
-          </a>
-        </p>
+// Import dynamique SANS SSR
+const CMSDashboard = dynamic(
+  () => import("../../components/cms/CMSDashboard"),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Chargement du CMS...</p>
+        </div>
       </div>
-    </div>
-  );
+    ),
+  }
+);
+
+export default function AdminPage() {
+  return <CMSDashboard />;
 }
