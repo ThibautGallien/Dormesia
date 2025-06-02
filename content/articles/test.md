@@ -2,7 +2,7 @@
 title: "Test"
 slug: "test"
 category: "science-sommeil"
-author: "Équipe Dormesia"
+author: "undefined"
 publishedAt: "2025-06-02"
 draft: true
 featured: false
