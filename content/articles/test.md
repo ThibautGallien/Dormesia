@@ -4,7 +4,7 @@ slug: "test"
 category: "science-sommeil"
 author: "undefined"
 publishedAt: "2025-06-02"
-draft: true
+draft: false
 featured: false
 ---
 
