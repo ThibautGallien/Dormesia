@@ -4,10 +4,6 @@
 import { useState, useEffect, useRef } from "react";
 import {
   Save,
-  X,
-  Eye,
-  Upload,
-  Image as ImageIcon,
   Link,
   Bold,
   Italic,
@@ -15,9 +11,7 @@ import {
   Hash,
   Quote,
   Code,
-  Search,
   FileText,
-  Tag,
   ArrowLeft,
 } from "lucide-react";
 
@@ -28,7 +22,7 @@ export default function ArticleEditor({
   onCancel,
   loading,
 }) {
-  // ✅ FONCTION DE PROTECTION pour les tags
+  // Fonction de protection pour les tags
   const ensureTagsArray = (tags) => {
     if (Array.isArray(tags)) return tags;
     if (typeof tags === "string") {
@@ -43,7 +37,7 @@ export default function ArticleEditor({
     return [];
   };
 
-  // ✅ FONCTION DE PROTECTION pour les mots-clés SEO
+  // Fonction de protection pour les mots-clés SEO
   const ensureKeywordsArray = (keywords) => {
     if (Array.isArray(keywords)) return keywords;
     if (typeof keywords === "string") {
@@ -98,8 +92,6 @@ export default function ArticleEditor({
   };
 
   const [formData, setFormData] = useState(getInitialFormData);
-  const [activeTab, setActiveTab] = useState("content");
-  const [showPreview, setShowPreview] = useState(false);
   const [newTag, setNewTag] = useState("");
   const [newKeyword, setNewKeyword] = useState("");
 
@@ -148,7 +140,7 @@ export default function ArticleEditor({
     setFormData((prev) => ({ ...prev, readingTime }));
   }, [formData.content]);
 
-  // 🔧 FONCTIONS D'AIDE MARKDOWN
+  // Fonctions d'aide Markdown
   const insertMarkdown = (before, after = "", placeholder = "texte") => {
     const textarea = textareaRef.current;
     if (!textarea) return;
@@ -166,7 +158,6 @@ export default function ArticleEditor({
 
     setFormData((prev) => ({ ...prev, content: newText }));
 
-    // Remettre le focus
     setTimeout(() => {
       textarea.focus();
       textarea.setSelectionRange(
@@ -183,7 +174,7 @@ export default function ArticleEditor({
     }
   };
 
-  // 🏷️ GESTION DES TAGS ET MOTS-CLÉS
+  // Gestion des tags
   const addTag = () => {
     if (
       newTag.trim() &&
@@ -204,6 +195,7 @@ export default function ArticleEditor({
     }));
   };
 
+  // Gestion des mots-clés
   const addKeyword = () => {
     if (
       newKeyword.trim() &&
@@ -231,14 +223,14 @@ export default function ArticleEditor({
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    console.log("📤 Envoi formData:", formData);
+    console.log("Envoi formData:", formData);
     onSave(formData);
   };
 
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
-      <header className="bg-white shadow-sm border-b fixed top-0 left-0 right-0 z-40" style={{ paddingTop: '80px' }}>
+      <header className="bg-white shadow-sm border-b fixed top-0 left-0 right-0 z-40">
         <div className="px-6 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-4">
@@ -261,14 +253,6 @@ export default function ArticleEditor({
             </div>
             <div className="flex items-center space-x-3">
               <button
-                type="button"
-                onClick={() => setShowPreview(!showPreview)}
-                className="flex items-center space-x-2 px-3 py-2 text-gray-600 hover:text-gray-800 border border-gray-300 rounded-md hover:bg-gray-50"
-              >
-                <Eye className="w-4 h-4" />
-                <span>{showPreview ? "Éditer" : "Aperçu"}</span>
-              </button>
-              <button
                 type="submit"
                 form="article-form"
                 disabled={loading}
@@ -282,10 +266,9 @@ export default function ArticleEditor({
         </div>
       </header>
 
-      <div style={{ paddingTop: '160px' }}>
+      <div style={{ paddingTop: "100px" }}>
         <form id="article-form" onSubmit={handleSubmit} className="flex-1">
           <div className="max-w-6xl mx-auto p-6">
-            {/* Contenu principal */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
               {/* Colonne principale */}
               <div className="lg:col-span-2 space-y-6">
@@ -436,12 +419,12 @@ export default function ArticleEditor({
                       required
                     />
                     <div className="mt-2 text-xs text-gray-500">
-                      Utilisez la syntaxe Markdown.
+                      Utilisez la syntaxe Markdown.{" "}
                       <a
                         href="https://www.markdownguide.org/basic-syntax/"
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="text-indigo-600 hover:underline ml-1"
+                        className="text-indigo-600 hover:underline"
                       >
                         Guide de syntaxe
                       </a>
@@ -454,7 +437,9 @@ export default function ArticleEditor({
               <div className="space-y-6">
                 {/* Statut de publication */}
                 <div className="bg-white rounded-lg shadow-sm border p-4">
-                  <h3 className="font-medium text-gray-800 mb-3">Publication</h3>
+                  <h3 className="font-medium text-gray-800 mb-3">
+                    Publication
+                  </h3>
                   <div className="space-y-3">
                     <div className="flex items-center space-x-2">
                       <input
@@ -486,7 +471,10 @@ export default function ArticleEditor({
                         }
                         className="rounded"
                       />
-                      <label htmlFor="featured" className="text-sm text-gray-700">
+                      <label
+                        htmlFor="featured"
+                        className="text-sm text-gray-700"
+                      >
                         Article mis en avant
                       </label>
                     </div>
@@ -629,14 +617,8 @@ export default function ArticleEditor({
                     )}
                   </div>
                 </div>
-              </div>
-            </div>
-          </div>
-        </form>
-      </div>
-    </div>
-  );
-}                {/* SEO */}
+
+                {/* SEO */}
                 <div className="bg-white rounded-lg shadow-sm border p-4">
                   <h3 className="font-medium text-gray-800 mb-3">SEO</h3>
                   <div className="space-y-3">

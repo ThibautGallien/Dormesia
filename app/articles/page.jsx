@@ -1,3 +1,6 @@
+"use client";
+
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { ArrowRight } from "lucide-react";
@@ -6,120 +9,12 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 
-// Fonction pour récupérer les articles depuis l'API
-async function getArticles() {
-  try {
-    const response = await fetch(
-      `${
-        process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"
-      }/api/cms/github/articles`,
-      {
-        method: "GET",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        cache: "no-store", // Pas de cache pour toujours avoir les derniers articles
-      }
-    );
+export default function ArticlesPage() {
+  const [articles, setArticles] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-    if (!response.ok) {
-      throw new Error("Erreur récupération articles");
-    }
-
-    const data = await response.json();
-    const processedArticles = [];
-
-    for (const file of data) {
-      if (file.name && file.name.endsWith(".md")) {
-        try {
-          const fileResponse = await fetch(
-            `${
-              process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"
-            }/api/cms/github/article/${file.name.replace(".md", "")}`,
-            {
-              method: "GET",
-              headers: {
-                "Content-Type": "application/json",
-              },
-            }
-          );
-
-          if (fileResponse.ok) {
-            const fileData = await fileResponse.json();
-            const content = atob(fileData.content);
-
-            // Parser le frontmatter
-            const frontmatterRegex = /^---\s*\n([\s\S]*?)\n---\s*\n([\s\S]*)$/;
-            const match = content.match(frontmatterRegex);
-
-            if (match) {
-              const frontmatterLines = match[1].split("\n");
-              const frontmatter = {};
-
-              for (const line of frontmatterLines) {
-                const trimmedLine = line.trim();
-                if (!trimmedLine || !trimmedLine.includes(":")) continue;
-
-                const [key, ...valueParts] = trimmedLine.split(":");
-                let value = valueParts.join(":").trim().replace(/['"]/g, "");
-
-                if (value === "true") value = true;
-                else if (value === "false") value = false;
-                else if (!isNaN(value) && value !== "") value = Number(value);
-
-                frontmatter[key.trim()] = value;
-              }
-
-              const article = {
-                id: frontmatter.slug || file.name.replace(".md", ""),
-                title: frontmatter.title || "Article sans titre",
-                excerpt: frontmatter.excerpt || "",
-                category: frontmatter.category || "conseils",
-                image:
-                  frontmatter.image ||
-                  "https://images.pexels.com/photos/6087674/pexels-photo-6087674.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2",
-                date: frontmatter.publishedAt
-                  ? new Date(frontmatter.publishedAt).toLocaleDateString(
-                      "fr-FR",
-                      {
-                        year: "numeric",
-                        month: "long",
-                        day: "numeric",
-                      }
-                    )
-                  : "Date inconnue",
-                draft: frontmatter.draft || false,
-                slug: frontmatter.slug || file.name.replace(".md", ""),
-              };
-
-              // N'afficher que les articles publiés
-              if (!article.draft) {
-                processedArticles.push(article);
-              }
-            }
-          }
-        } catch (error) {
-          console.error(`Erreur traitement fichier ${file.name}:`, error);
-        }
-      }
-    }
-
-    // Trier par date de publication (plus récent en premier)
-    return processedArticles.sort(
-      (a, b) => new Date(b.date) - new Date(a.date)
-    );
-  } catch (error) {
-    console.error("Erreur récupération articles:", error);
-    // Retourner un tableau vide en cas d'erreur
-    return [];
-  }
-}
-
-export default async function ArticlesPage() {
-  // Récupérer les vrais articles depuis l'API
-  const realArticles = await getArticles();
-
-  // Articles de fallback en cas de problème
+  // Articles de fallback
   const fallbackArticles = [
     {
       id: "phases-du-sommeil",
@@ -130,6 +25,7 @@ export default async function ArticlesPage() {
       image:
         "https://images.pexels.com/photos/17499246/pexels-photo-17499246/free-photo-of-femme-lit-sommeil-dormir.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2",
       date: "12 avril 2024",
+      slug: "phases-du-sommeil",
     },
     {
       id: "meditation-sommeil",
@@ -140,11 +36,137 @@ export default async function ArticlesPage() {
       image:
         "https://images.pexels.com/photos/9638689/pexels-photo-9638689.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2",
       date: "5 avril 2024",
+      slug: "meditation-sommeil",
     },
   ];
 
-  // Utiliser les vrais articles si disponibles, sinon les articles de fallback
-  const articles = realArticles.length > 0 ? realArticles : fallbackArticles;
+  // Fonction pour récupérer les articles
+  const loadArticles = async () => {
+    try {
+      setLoading(true);
+      console.log("🔍 Chargement des articles...");
+
+      const response = await fetch("/api/cms/github/articles", {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error(`Erreur API: ${response.status}`);
+      }
+
+      const data = await response.json();
+      console.log("📦 Articles reçus:", data);
+
+      const processedArticles = [];
+
+      for (const file of data) {
+        if (file.name && file.name.endsWith(".md")) {
+          try {
+            const fileResponse = await fetch(
+              `/api/cms/github/article/${file.name.replace(".md", "")}`,
+              {
+                method: "GET",
+                headers: {
+                  "Content-Type": "application/json",
+                },
+              }
+            );
+
+            if (fileResponse.ok) {
+              const fileData = await fileResponse.json();
+              const content = atob(fileData.content);
+
+              // Parser le frontmatter
+              const frontmatterRegex =
+                /^---\s*\n([\s\S]*?)\n---\s*\n([\s\S]*)$/;
+              const match = content.match(frontmatterRegex);
+
+              if (match) {
+                const frontmatterLines = match[1].split("\n");
+                const frontmatter = {};
+
+                for (const line of frontmatterLines) {
+                  const trimmedLine = line.trim();
+                  if (!trimmedLine || !trimmedLine.includes(":")) continue;
+
+                  const [key, ...valueParts] = trimmedLine.split(":");
+                  let value = valueParts.join(":").trim().replace(/['"]/g, "");
+
+                  if (value === "true") value = true;
+                  else if (value === "false") value = false;
+                  else if (!isNaN(value) && value !== "") value = Number(value);
+
+                  frontmatter[key.trim()] = value;
+                }
+
+                const article = {
+                  id: frontmatter.slug || file.name.replace(".md", ""),
+                  title: frontmatter.title || "Article sans titre",
+                  excerpt: frontmatter.excerpt || "",
+                  category: frontmatter.category || "conseils-sommeil",
+                  image:
+                    frontmatter.image ||
+                    "https://images.pexels.com/photos/6087674/pexels-photo-6087674.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2",
+                  date: frontmatter.publishedAt
+                    ? new Date(frontmatter.publishedAt).toLocaleDateString(
+                        "fr-FR",
+                        {
+                          year: "numeric",
+                          month: "long",
+                          day: "numeric",
+                        }
+                      )
+                    : "Date inconnue",
+                  draft: frontmatter.draft || false,
+                  slug: frontmatter.slug || file.name.replace(".md", ""),
+                };
+
+                console.log(
+                  `✅ Article traité: ${article.title} (draft: ${article.draft})`
+                );
+
+                // N'afficher que les articles publiés
+                if (!article.draft) {
+                  processedArticles.push(article);
+                }
+              }
+            }
+          } catch (error) {
+            console.error(`Erreur traitement fichier ${file.name}:`, error);
+          }
+        }
+      }
+
+      // Trier par date
+      const sortedArticles = processedArticles.sort(
+        (a, b) => new Date(b.date) - new Date(a.date)
+      );
+
+      if (sortedArticles.length > 0) {
+        setArticles(sortedArticles);
+        console.log(`✅ ${sortedArticles.length} articles chargés`);
+      } else {
+        console.log(
+          "🔄 Aucun article trouvé, utilisation des articles de fallback"
+        );
+        setArticles(fallbackArticles);
+      }
+    } catch (error) {
+      console.error("❌ Erreur chargement articles:", error);
+      setError(error.message);
+      setArticles(fallbackArticles);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Charger les articles au montage
+  useEffect(() => {
+    loadArticles();
+  }, []);
 
   // Fonction pour rendre une carte d'article
   const renderArticleCard = (article) => (
@@ -196,11 +218,10 @@ export default async function ArticlesPage() {
               Découvrez nos guides, conseils et études sur le sommeil pour
               améliorer votre qualité de vie.
             </p>
-            {realArticles.length > 0 && (
+            {articles.length > 0 && (
               <p className="text-sm text-indigo-200">
-                {realArticles.length} article
-                {realArticles.length > 1 ? "s" : ""} disponible
-                {realArticles.length > 1 ? "s" : ""}
+                {articles.length} article{articles.length > 1 ? "s" : ""}{" "}
+                disponible{articles.length > 1 ? "s" : ""}
               </p>
             )}
           </div>
@@ -262,6 +283,21 @@ export default async function ArticlesPage() {
             </TabsTrigger>
           </TabsList>
 
+          {/* Contenu */}
+          {loading ? (
+            <div className="text-center py-12">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto mb-4"></div>
+              <p className="text-gray-600">Chargement des articles...</p>
+            </div>
+          ) : error ? (
+            <div className="text-center py-12">
+              <p className="text-red-600 mb-4">Erreur: {error}</p>
+              <p className="text-gray-600">
+                Affichage des articles de démonstration
+              </p>
+            </div>
+          ) : null}
+
           {/* Tous les articles */}
           <TabsContent
             value="tous"
@@ -320,6 +356,13 @@ export default async function ArticlesPage() {
               .map(renderArticleCard)}
           </TabsContent>
         </Tabs>
+
+        {articles.length === 0 && !loading && (
+          <div className="text-center py-12">
+            <p className="text-gray-600 mb-4">Aucun article trouvé</p>
+            <Button onClick={loadArticles}>Réessayer</Button>
+          </div>
+        )}
       </section>
 
       {/* Newsletter Section */}

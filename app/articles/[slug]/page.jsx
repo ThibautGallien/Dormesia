@@ -4,19 +4,19 @@ import { notFound } from "next/navigation";
 // Fonction pour récupérer un article depuis l'API GitHub
 async function getArticle(slug) {
   try {
-    const response = await fetch(
-      `${
-        process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"
-      }/api/cms/github/article/${slug}`,
-      {
-        method: "GET",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        // Pas de cache pour le développement, ajustez selon vos besoins
-        cache: "no-store",
-      }
-    );
+    // URL pour appeler l'API - en production on peut utiliser une URL relative
+    const baseUrl =
+      process.env.NODE_ENV === "production"
+        ? "" // URL relative en production
+        : "http://localhost:3000";
+
+    const response = await fetch(`${baseUrl}/api/cms/github/article/${slug}`, {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      next: { revalidate: 60 },
+    });
 
     if (!response.ok) {
       return null;
