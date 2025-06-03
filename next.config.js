@@ -1,6 +1,6 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  output: "export",
+  // output: "export", // ❌ COMMENTÉ - Incompatible avec les routes API dynamiques du CMS
   eslint: {
     ignoreDuringBuilds: true,
   },
