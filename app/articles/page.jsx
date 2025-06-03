@@ -6,14 +6,127 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 
-export default function ArticlesPage() {
-  const articles = [
+// Fonction pour récupérer les articles depuis l'API
+async function getArticles() {
+  try {
+    const response = await fetch(
+      `${
+        process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"
+      }/api/cms/github/articles`,
+      {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        cache: "no-store", // Pas de cache pour toujours avoir les derniers articles
+      }
+    );
+
+    if (!response.ok) {
+      throw new Error("Erreur récupération articles");
+    }
+
+    const data = await response.json();
+    const processedArticles = [];
+
+    for (const file of data) {
+      if (file.name && file.name.endsWith(".md")) {
+        try {
+          const fileResponse = await fetch(
+            `${
+              process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"
+            }/api/cms/github/article/${file.name.replace(".md", "")}`,
+            {
+              method: "GET",
+              headers: {
+                "Content-Type": "application/json",
+              },
+            }
+          );
+
+          if (fileResponse.ok) {
+            const fileData = await fileResponse.json();
+            const content = atob(fileData.content);
+
+            // Parser le frontmatter
+            const frontmatterRegex = /^---\s*\n([\s\S]*?)\n---\s*\n([\s\S]*)$/;
+            const match = content.match(frontmatterRegex);
+
+            if (match) {
+              const frontmatterLines = match[1].split("\n");
+              const frontmatter = {};
+
+              for (const line of frontmatterLines) {
+                const trimmedLine = line.trim();
+                if (!trimmedLine || !trimmedLine.includes(":")) continue;
+
+                const [key, ...valueParts] = trimmedLine.split(":");
+                let value = valueParts.join(":").trim().replace(/['"]/g, "");
+
+                if (value === "true") value = true;
+                else if (value === "false") value = false;
+                else if (!isNaN(value) && value !== "") value = Number(value);
+
+                frontmatter[key.trim()] = value;
+              }
+
+              const article = {
+                id: frontmatter.slug || file.name.replace(".md", ""),
+                title: frontmatter.title || "Article sans titre",
+                excerpt: frontmatter.excerpt || "",
+                category: frontmatter.category || "conseils",
+                image:
+                  frontmatter.image ||
+                  "https://images.pexels.com/photos/6087674/pexels-photo-6087674.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2",
+                date: frontmatter.publishedAt
+                  ? new Date(frontmatter.publishedAt).toLocaleDateString(
+                      "fr-FR",
+                      {
+                        year: "numeric",
+                        month: "long",
+                        day: "numeric",
+                      }
+                    )
+                  : "Date inconnue",
+                draft: frontmatter.draft || false,
+                slug: frontmatter.slug || file.name.replace(".md", ""),
+              };
+
+              // N'afficher que les articles publiés
+              if (!article.draft) {
+                processedArticles.push(article);
+              }
+            }
+          }
+        } catch (error) {
+          console.error(`Erreur traitement fichier ${file.name}:`, error);
+        }
+      }
+    }
+
+    // Trier par date de publication (plus récent en premier)
+    return processedArticles.sort(
+      (a, b) => new Date(b.date) - new Date(a.date)
+    );
+  } catch (error) {
+    console.error("Erreur récupération articles:", error);
+    // Retourner un tableau vide en cas d'erreur
+    return [];
+  }
+}
+
+export default async function ArticlesPage() {
+  // Récupérer les vrais articles depuis l'API
+  const realArticles = await getArticles();
+
+  // Articles de fallback en cas de problème
+  const fallbackArticles = [
     {
       id: "phases-du-sommeil",
       title: "Les 4 Phases du Sommeil Expliquées",
       excerpt:
         "Découvrez les différentes phases du sommeil et leur importance pour votre santé globale.",
-      category: "science",
+      category: "science-sommeil",
       image:
         "https://images.pexels.com/photos/17499246/pexels-photo-17499246/free-photo-of-femme-lit-sommeil-dormir.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2",
       date: "12 avril 2024",
@@ -23,62 +136,15 @@ export default function ArticlesPage() {
       title: "5 Techniques de Méditation pour Mieux Dormir",
       excerpt:
         "Des exercices de méditation simples et efficaces pour apaiser l'esprit avant le coucher.",
-      category: "bien-être",
+      category: "conseils-sommeil",
       image:
         "https://images.pexels.com/photos/9638689/pexels-photo-9638689.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2",
       date: "5 avril 2024",
     },
-    {
-      id: "musique-sommeil",
-      title: "L'Impact de la Musique sur la Qualité du Sommeil",
-      excerpt:
-        "Comment certains genres musicaux peuvent améliorer votre sommeil et réduire l'anxiété.",
-      category: "conseils",
-      image:
-        "https://images.pexels.com/photos/45243/saxophone-music-gold-gloss-45243.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2",
-      date: "28 mars 2024",
-    },
-    {
-      id: "sommeil-stress",
-      title: "Sommeil et Stress: Un Cercle Vicieux à Briser",
-      excerpt:
-        "Comprendre la relation entre le stress et les troubles du sommeil pour mieux les gérer.",
-      category: "santé",
-      image:
-        "https://images.pexels.com/photos/897817/pexels-photo-897817.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2",
-      date: "20 mars 2024",
-    },
-    {
-      id: "alimentation-sommeil",
-      title: "Alimentation et Sommeil: Ce Qu'il Faut Savoir",
-      excerpt:
-        "Les aliments qui favorisent un bon sommeil et ceux à éviter avant le coucher.",
-      category: "nutrition",
-      image:
-        "https://images.pexels.com/photos/1640770/pexels-photo-1640770.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2",
-      date: "15 mars 2024",
-    },
-    {
-      id: "technologie-sommeil",
-      title: "La Technologie au Service du Sommeil",
-      excerpt:
-        "Les innovations technologiques qui peuvent aider à suivre et améliorer la qualité de votre sommeil.",
-      category: "technologie",
-      image:
-        "https://images.pexels.com/photos/4482896/pexels-photo-4482896.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2",
-      date: "8 mars 2024",
-    },
-    {
-      id: "exercice-sommeil",
-      title: "L'Exercice Physique et Votre Sommeil",
-      excerpt:
-        "Comment l'activité physique peut améliorer la qualité de votre sommeil et à quel moment la pratiquer.",
-      category: "conseils",
-      image:
-        "https://images.pexels.com/photos/4058316/pexels-photo-4058316.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2",
-      date: "1 mars 2024",
-    },
   ];
+
+  // Utiliser les vrais articles si disponibles, sinon les articles de fallback
+  const articles = realArticles.length > 0 ? realArticles : fallbackArticles;
 
   // Fonction pour rendre une carte d'article
   const renderArticleCard = (article) => (
@@ -97,7 +163,7 @@ export default function ArticlesPage() {
       <CardContent className="p-6">
         <div className="flex justify-between items-center mb-2">
           <div className="text-sm font-medium text-indigo-600 dark:text-indigo-400 capitalize">
-            {article.category}
+            {article.category?.replace("-", " ") || "Conseils"}
           </div>
           <div className="text-sm text-gray-500">{article.date}</div>
         </div>
@@ -106,7 +172,7 @@ export default function ArticlesPage() {
           {article.excerpt}
         </p>
         <Link
-          href={`/articles/${article.id}`}
+          href={`/articles/${article.slug || article.id}`}
           className="text-indigo-600 dark:text-indigo-400 font-medium flex items-center hover:text-indigo-700 transition-colors"
         >
           Lire l'article
@@ -130,6 +196,13 @@ export default function ArticlesPage() {
               Découvrez nos guides, conseils et études sur le sommeil pour
               améliorer votre qualité de vie.
             </p>
+            {realArticles.length > 0 && (
+              <p className="text-sm text-indigo-200">
+                {realArticles.length} article
+                {realArticles.length > 1 ? "s" : ""} disponible
+                {realArticles.length > 1 ? "s" : ""}
+              </p>
+            )}
           </div>
         </div>
         <div className="absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-t from-background to-transparent"></div>
@@ -174,11 +247,19 @@ export default function ArticlesPage() {
         <Tabs defaultValue="tous" className="w-full">
           <TabsList className="mb-8 flex flex-wrap">
             <TabsTrigger value="tous">Tous les articles</TabsTrigger>
-            <TabsTrigger value="science">Science du sommeil</TabsTrigger>
-            <TabsTrigger value="bien-être">Bien-être</TabsTrigger>
-            <TabsTrigger value="conseils">Conseils pratiques</TabsTrigger>
-            <TabsTrigger value="nutrition">Nutrition</TabsTrigger>
-            <TabsTrigger value="santé">Santé</TabsTrigger>
+            <TabsTrigger value="science-sommeil">
+              Science du sommeil
+            </TabsTrigger>
+            <TabsTrigger value="conseils-sommeil">Conseils sommeil</TabsTrigger>
+            <TabsTrigger value="produits-naturels">
+              Produits naturels
+            </TabsTrigger>
+            <TabsTrigger value="troubles-sommeil">
+              Troubles du sommeil
+            </TabsTrigger>
+            <TabsTrigger value="hygiene-sommeil">
+              Hygiène du sommeil
+            </TabsTrigger>
           </TabsList>
 
           {/* Tous les articles */}
@@ -191,51 +272,51 @@ export default function ArticlesPage() {
 
           {/* Science du sommeil */}
           <TabsContent
-            value="science"
+            value="science-sommeil"
             className="grid md:grid-cols-2 lg:grid-cols-3 gap-8"
           >
             {articles
-              .filter((article) => article.category === "science")
+              .filter((article) => article.category === "science-sommeil")
               .map(renderArticleCard)}
           </TabsContent>
 
-          {/* Bien-être */}
+          {/* Conseils sommeil */}
           <TabsContent
-            value="bien-être"
+            value="conseils-sommeil"
             className="grid md:grid-cols-2 lg:grid-cols-3 gap-8"
           >
             {articles
-              .filter((article) => article.category === "bien-être")
+              .filter((article) => article.category === "conseils-sommeil")
               .map(renderArticleCard)}
           </TabsContent>
 
-          {/* Conseils pratiques */}
+          {/* Produits naturels */}
           <TabsContent
-            value="conseils"
+            value="produits-naturels"
             className="grid md:grid-cols-2 lg:grid-cols-3 gap-8"
           >
             {articles
-              .filter((article) => article.category === "conseils")
+              .filter((article) => article.category === "produits-naturels")
               .map(renderArticleCard)}
           </TabsContent>
 
-          {/* Nutrition */}
+          {/* Troubles du sommeil */}
           <TabsContent
-            value="nutrition"
+            value="troubles-sommeil"
             className="grid md:grid-cols-2 lg:grid-cols-3 gap-8"
           >
             {articles
-              .filter((article) => article.category === "nutrition")
+              .filter((article) => article.category === "troubles-sommeil")
               .map(renderArticleCard)}
           </TabsContent>
 
-          {/* Santé */}
+          {/* Hygiène du sommeil */}
           <TabsContent
-            value="santé"
+            value="hygiene-sommeil"
             className="grid md:grid-cols-2 lg:grid-cols-3 gap-8"
           >
             {articles
-              .filter((article) => article.category === "santé")
+              .filter((article) => article.category === "hygiene-sommeil")
               .map(renderArticleCard)}
           </TabsContent>
         </Tabs>
