@@ -228,19 +228,35 @@ export default function CMSDashboard() {
     }
   };
 
-  // Auth
-  const handleLogin = (e) => {
+  // Auth - FONCTION CORRIGÉE POUR UTILISER L'API
+  const handleLogin = async (e) => {
     e.preventDefault();
+    setLoading(true);
 
-    const validUsername = process.env.NEXT_PUBLIC_CMS_USERNAME || "admin";
-    const validPassword = process.env.NEXT_PUBLIC_CMS_PASSWORD || "password123";
+    try {
+      const response = await fetch("/api/cms/auth", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username, password }),
+      });
 
-    if (username === validUsername && password === validPassword) {
-      setIsAuthenticated(true);
-      showMessage("Connexion réussie !");
-      loadArticles();
-    } else {
-      showMessage("Identifiants incorrects", "error");
+      if (response.ok) {
+        const data = await response.json();
+        if (data.success) {
+          setIsAuthenticated(true);
+          showMessage("Connexion réussie !");
+          loadArticles();
+        } else {
+          showMessage("Identifiants incorrects", "error");
+        }
+      } else {
+        showMessage("Erreur de connexion", "error");
+      }
+    } catch (error) {
+      console.error("Erreur auth:", error);
+      showMessage("Erreur de connexion", "error");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -361,6 +377,7 @@ export default function CMSDashboard() {
                 onChange={(e) => setUsername(e.target.value)}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                 required
+                disabled={loading}
               />
             </div>
             <div>
@@ -373,13 +390,15 @@ export default function CMSDashboard() {
                 onChange={(e) => setPassword(e.target.value)}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                 required
+                disabled={loading}
               />
             </div>
             <button
               type="submit"
-              className="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 transition-colors"
+              disabled={loading}
+              className="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              Se connecter
+              {loading ? "Connexion..." : "Se connecter"}
             </button>
           </form>
 
