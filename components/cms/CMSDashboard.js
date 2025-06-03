@@ -428,7 +428,10 @@ export default function CMSDashboard() {
 
   // Interface principale
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div
+      className="min-h-screen bg-gray-50"
+      style={{ paddingTop: "80px", position: "relative", zIndex: 9999 }}
+    >
       {/* Messages */}
       {(success || error) && (
         <div className="fixed top-4 right-4 z-50">
@@ -445,7 +448,7 @@ export default function CMSDashboard() {
       )}
 
       {/* Header */}
-      <header className="bg-white shadow-sm border-b">
+      <header className="bg-white shadow-sm border-b fixed top-0 left-0 right-0 z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center py-4">
             <div className="flex items-center space-x-4">
@@ -661,7 +664,7 @@ export default function CMSDashboard() {
 
                         <div className="flex items-center space-x-2 ml-4">
                           <a
-                            href={`/${currentSiteConfig?.domain}/articles/${article.slug}`}
+                            href={`/articles/${article.slug}`}
                             target="_blank"
                             rel="noopener noreferrer"
                             className="p-2 text-gray-400 hover:text-blue-600 rounded-md hover:bg-blue-50"
