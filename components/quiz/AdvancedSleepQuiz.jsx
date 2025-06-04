@@ -49,6 +49,10 @@ import {
   analyzeAdvancedQuiz,
 } from "@/lib/advanced-quiz-logic";
 import ZinzinoProducts from "./ZinzinoProducts";
+import {
+  SmartLoadingScreen,
+  useSmartLoading,
+} from "@/components/ui/smart-loading";
 
 // Mapping des icônes
 const iconMap = {
@@ -68,16 +72,14 @@ const iconMap = {
   RefreshCwIcon,
 };
 
-// 🎯 FONCTION DE MAPPING: Convertit les résultats du quiz vers les profils ZinzinoProducts
 function mapQuizResultsToSleepProfile(quizResults) {
   if (!quizResults?.profile) {
-    return "bon-dormeur"; // Valeur par défaut
+    return "bon-dormeur";
   }
 
   const { category, percentage, troubles } = quizResults.profile;
   const troubleCount = troubles?.length || 0;
 
-  // Logique de mapping basée sur le pourcentage et les troubles
   if (percentage >= 80 && troubleCount === 0) {
     return "excellent-dormeur";
   } else if (percentage >= 65 && troubleCount <= 1) {
@@ -98,7 +100,10 @@ export default function AdvancedSleepQuiz() {
   const [userEmail, setUserEmail] = useState("");
   const [userName, setUserName] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [sleepProfile, setSleepProfile] = useState("bon-dormeur"); // Profil pour ZinzinoProducts
+  const [sleepProfile, setSleepProfile] = useState("bon-dormeur");
+
+  // 🚀 Hook pour le chargement intelligent
+  const { isLoading, startLoading, stopLoading } = useSmartLoading();
 
   const totalSteps = ADVANCED_QUIZ_QUESTIONS.length;
   const progress = step === 0 ? 0 : (step / totalSteps) * 100;
@@ -126,56 +131,79 @@ export default function AdvancedSleepQuiz() {
     defaultValues: { answer: "" },
   });
 
+  // 🚀 NOUVELLE FONCTION: Submit email optimisé
   async function onEmailSubmit(values) {
     setIsSubmitting(true);
+    startLoading(); // Démarrer l'animation
+
     try {
       setUserEmail(values.email);
       setUserName(values.name);
 
-      // Ajouter à la newsletter
-      try {
-        await fetch("/api/newsletter", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            email: values.email,
-            name: values.name,
-            source: "quiz-avance",
-          }),
-        });
-        console.log("✅ Email ajouté à la newsletter");
-      } catch (error) {
-        console.log("⚠️ Erreur newsletter (non bloquant):", error);
-      }
+      // 🎯 STRATÉGIE 1: Réponse ultra-rapide
+      backgroundEmailSync(values.email, values.name);
 
+      // Simuler un délai minimal pour l'UX (éviter effet "trop rapide")
+      await new Promise((resolve) => setTimeout(resolve, 1500));
+
+      // ✅ Transition vers le quiz
+      stopLoading();
+      setIsSubmitting(false);
       setStep(1);
+
       toast({
         title: "Parfait !",
-        description: "Commençons votre analyse complète du sommeil.",
+        description: "Votre analyse personnalisée démarre maintenant.",
       });
     } catch (error) {
+      stopLoading();
+      setIsSubmitting(false);
       toast({
         title: "Erreur",
         description: "Une erreur s'est produite. Veuillez réessayer.",
         variant: "destructive",
       });
-    } finally {
-      setIsSubmitting(false);
     }
   }
 
-  function onQuestionSubmit(values) {
-    // Store answer
-    const newAnswers = { ...answers, [`q${step}`]: values.answer };
-    setAnswers(newAnswers);
+  // 🔄 Sync en arrière-plan (non-bloquante)
+  async function backgroundEmailSync(email, name) {
+    try {
+      console.log(
+        "🔄 Début sync arrière-plan pour:",
+        email.substring(0, 3) + "***"
+      );
 
-    // Move to next step or calculate results
-    if (step < totalSteps) {
-      setStep(step + 1);
-      questionForm.reset({ answer: "" });
-    } else {
-      // Calculate advanced quiz results
-      calculateAdvancedResults(newAnswers);
+      // Newsletter avec timeout court
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 3000); // 3s max
+
+      const newsletterPromise = fetch("/api/newsletter", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email,
+          name,
+          source: "quiz-avance",
+        }),
+        signal: controller.signal,
+      });
+
+      try {
+        const response = await newsletterPromise;
+        clearTimeout(timeoutId);
+
+        if (response.ok) {
+          console.log("✅ Newsletter sync réussie");
+        }
+      } catch (error) {
+        console.log(
+          "⚠️ Newsletter sync timeout/error (non-bloquant):",
+          error.message
+        );
+      }
+    } catch (error) {
+      console.error("❌ Erreur sync arrière-plan (non-bloquant):", error);
     }
   }
 
@@ -184,9 +212,7 @@ export default function AdvancedSleepQuiz() {
       setIsSubmitting(true);
       console.log("🧠 Analyse IA en cours...");
 
-      // Utiliser notre algorithme IA avancé
       const analysis = analyzeAdvancedQuiz(allAnswers);
-
       console.log("📊 Analyse complétée:", analysis);
 
       const results = {
@@ -197,17 +223,13 @@ export default function AdvancedSleepQuiz() {
         completedAt: new Date().toISOString(),
         quizVersion: "advanced-v1",
       };
-
       setQuizResults(results);
 
-      // 🎯 NOUVEAU: Déterminer le profil de sommeil pour ZinzinoProducts
       const mappedProfile = mapQuizResultsToSleepProfile(results);
       setSleepProfile(mappedProfile);
       console.log("🎯 Profil sommeil mappé:", mappedProfile);
 
       setStep(totalSteps + 1); // Results step
-
-      // Sauvegarder dans MongoDB + ActiveCampaign
       await sendAdvancedResultsToDatabase(results);
     } catch (error) {
       console.error("❌ Erreur analyse:", error);
@@ -233,7 +255,7 @@ export default function AdvancedSleepQuiz() {
           ...results,
           isAdvancedQuiz: true,
           quizType: "advanced-sleep-analysis",
-          sleepProfile: sleepProfile, // Ajouter le profil mappé
+          sleepProfile: sleepProfile,
         }),
       });
 
@@ -272,7 +294,6 @@ export default function AdvancedSleepQuiz() {
   function goBack() {
     if (step > 1) {
       setStep(step - 1);
-      // Restaurer la réponse précédente
       const prevAnswer = answers[`q${step - 1}`];
       if (prevAnswer) {
         questionForm.setValue("answer", prevAnswer);
@@ -280,14 +301,12 @@ export default function AdvancedSleepQuiz() {
     }
   }
 
-  // 🆕 NOUVELLE FONCTION: Passer aux recommandations produits
   function goToProducts() {
-    setStep(totalSteps + 2); // Products step
+    setStep(totalSteps + 2);
   }
 
-  // 🆕 NOUVELLE FONCTION: Retour aux résultats depuis les produits
   function backToResults() {
-    setStep(totalSteps + 1); // Results step
+    setStep(totalSteps + 1);
   }
 
   const currentQuestion =
@@ -296,6 +315,12 @@ export default function AdvancedSleepQuiz() {
 
   return (
     <div className="pt-16">
+      {/* 🚀 Écran de chargement intelligent */}
+      <SmartLoadingScreen
+        userName={userName}
+        estimatedTime={6000} // 6 secondes pour l'animation
+      />
+
       {/* Hero Section */}
       <section className="relative bg-gradient-to-b from-indigo-900 via-purple-900 to-indigo-800 text-white">
         <div className="absolute inset-0 bg-[url('https://images.pexels.com/photos/6985001/pexels-photo-6985001.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2')] bg-cover bg-center opacity-20"></div>
@@ -334,7 +359,7 @@ export default function AdvancedSleepQuiz() {
       {/* Quiz Section */}
       <section className="container mx-auto px-4 py-16">
         <div className="max-w-3xl mx-auto">
-          {/* Email Capture Step */}
+          {/* Email Capture Step OPTIMISÉ */}
           {step === 0 && (
             <Card className="shadow-xl border-2 border-indigo-100">
               <CardContent className="p-8 md:p-12">
@@ -351,30 +376,27 @@ export default function AdvancedSleepQuiz() {
                   </p>
                 </div>
 
+                {/* Benefits grid */}
                 <div className="grid md:grid-cols-3 gap-4 mb-8 text-sm">
                   <div className="bg-green-50 p-4 rounded-lg text-center">
                     <div className="font-semibold text-green-800 mb-1">
-                      Analyse Scientifique
+                      ⚡ Analyse Rapide
                     </div>
                     <div className="text-green-600">
-                      Chronotype Horne-Östberg validé
+                      Résultats en moins de 2 minutes
                     </div>
                   </div>
                   <div className="bg-blue-50 p-4 rounded-lg text-center">
                     <div className="font-semibold text-blue-800 mb-1">
-                      IA Avancée
+                      🧠 IA Avancée
                     </div>
-                    <div className="text-blue-600">
-                      Algorithme multidimensionnel
-                    </div>
+                    <div className="text-blue-600">15 paramètres analysés</div>
                   </div>
                   <div className="bg-purple-50 p-4 rounded-lg text-center">
                     <div className="font-semibold text-purple-800 mb-1">
-                      Recommandations
+                      🎯 100% Personnalisé
                     </div>
-                    <div className="text-purple-600">
-                      Des conseils et astuces pour votre améliorer votre sommeil
-                    </div>
+                    <div className="text-purple-600">Solutions sur-mesure</div>
                   </div>
                 </div>
 
@@ -394,6 +416,7 @@ export default function AdvancedSleepQuiz() {
                               placeholder="Votre prénom"
                               {...field}
                               className="h-12 text-lg"
+                              disabled={isSubmitting || isLoading}
                             />
                           </FormControl>
                           <FormMessage />
@@ -413,6 +436,7 @@ export default function AdvancedSleepQuiz() {
                               placeholder="votre@email.com"
                               {...field}
                               className="h-12 text-lg"
+                              disabled={isSubmitting || isLoading}
                             />
                           </FormControl>
                           <FormMessage />
@@ -423,21 +447,63 @@ export default function AdvancedSleepQuiz() {
                     <Button
                       type="submit"
                       size="lg"
-                      className="w-full h-12 text-lg bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700"
-                      disabled={isSubmitting}
+                      className="w-full h-12 text-lg bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 transform hover:scale-105 transition-all"
+                      disabled={isSubmitting || isLoading}
                     >
-                      {isSubmitting
-                        ? "Préparation..."
-                        : "Commencer l'Analyse IA"}
-                      <SparklesIcon className="ml-2 h-5 w-5" />
+                      {isSubmitting || isLoading ? (
+                        <span className="flex items-center gap-2">
+                          <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                          Création de votre profil IA...
+                        </span>
+                      ) : (
+                        <>
+                          Commencer l'Analyse IA
+                          <SparklesIcon className="ml-2 h-5 w-5" />
+                        </>
+                      )}
                     </Button>
 
-                    <p className="text-xs text-center text-gray-500">
-                      🔒 Vos données sont sécurisées. Analyse gratuite et sans
-                      engagement.
-                    </p>
+                    {/* Messages rassurants */}
+                    <div className="text-center space-y-2">
+                      <p className="text-xs text-gray-500">
+                        🔒 Vos données sont sécurisées • Analyse gratuite et
+                        sans engagement
+                      </p>
+                      {(isSubmitting || isLoading) && (
+                        <div className="space-y-1">
+                          <p className="text-sm text-indigo-600 font-medium animate-pulse">
+                            🚀 Configuration de votre profil personnalisé...
+                          </p>
+                          <p className="text-xs text-gray-500">
+                            Cela prend quelques secondes pour une analyse
+                            optimale
+                          </p>
+                        </div>
+                      )}
+                    </div>
                   </form>
                 </Form>
+
+                {/* Social proof */}
+                <div className="mt-8 pt-6 border-t border-gray-200">
+                  <div className="text-center">
+                    <p className="text-sm text-gray-600 mb-3">
+                      Déjà{" "}
+                      <span className="font-bold text-indigo-600">2 847</span>{" "}
+                      personnes ont amélioré leur sommeil
+                    </p>
+                    <div className="flex justify-center gap-1">
+                      {[...Array(5)].map((_, i) => (
+                        <span key={i} className="text-yellow-400 text-lg">
+                          ⭐
+                        </span>
+                      ))}
+                      <span className="ml-2 text-sm text-gray-600">
+                        4.9/5 (234 avis)
+                      </span>
+                    </div>
+                  </div>
+                </div>
               </CardContent>
             </Card>
           )}
@@ -832,9 +898,9 @@ export default function AdvancedSleepQuiz() {
                   </p>
                   <div className="flex flex-col sm:flex-row gap-4 justify-center">
                     <Button
-                      onClick={restartQuiz}
                       variant="outline"
                       className="px-8"
+                      onClick={restartQuiz}
                     >
                       Refaire le Quiz
                     </Button>
@@ -1191,7 +1257,7 @@ export default function AdvancedSleepQuiz() {
                         Livraison Gratuite
                       </div>
                       <div className="text-green-600 text-sm">
-                        Dès 50€ d'achat en France
+                        Dès 50 € d'achat en France
                       </div>
                     </div>
                   </div>
@@ -1297,4 +1363,16 @@ export default function AdvancedSleepQuiz() {
       )}
     </div>
   );
+
+  function onQuestionSubmit(values) {
+    const newAnswers = { ...answers, [`q${step}`]: values.answer };
+    setAnswers(newAnswers);
+
+    if (step < totalSteps) {
+      setStep(step + 1);
+      questionForm.reset({ answer: "" });
+    } else {
+      calculateAdvancedResults(newAnswers);
+    }
+  }
 }

@@ -80,7 +80,7 @@ export default function HomePage() {
               <Button
                 size="lg"
                 variant="outline"
-                className="border-white text-white hover:bg-white/10"
+                className="bg-transparent border-white text-white hover:bg-white/10"
               >
                 <Link href="/articles">Découvrir Nos Articles</Link>
               </Button>
