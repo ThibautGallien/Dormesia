@@ -266,7 +266,7 @@ export default function AdvancedSleepQuiz() {
             </h1>
             <p className="text-xl md:text-2xl mb-8 text-indigo-100">
               15 questions scientifiques pour une analyse IA personnalisée et
-              des recommandations Zinzino adaptées
+              des recommandations pour améliorer votre sommeil
             </p>
             <div className="flex flex-wrap items-center justify-center gap-6 text-indigo-200">
               <div className="flex items-center gap-2">
@@ -276,10 +276,6 @@ export default function AdvancedSleepQuiz() {
               <div className="flex items-center gap-2">
                 <CheckCircleIcon className="h-5 w-5" />
                 <span>Troubles spécifiques</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <CheckCircleIcon className="h-5 w-5" />
-                <span>Recommandations Zinzino</span>
               </div>
               <div className="flex items-center gap-2">
                 <CheckCircleIcon className="h-5 w-5" />
@@ -306,8 +302,8 @@ export default function AdvancedSleepQuiz() {
                     Démarrez votre analyse IA
                   </h2>
                   <p className="text-gray-600 text-lg">
-                    Recevez votre rapport complet avec recommandations Zinzino
-                    personnalisées
+                    Recevez votre rapport complet avec des recommandations et
+                    astuces personnalisées
                   </p>
                 </div>
 
@@ -333,7 +329,7 @@ export default function AdvancedSleepQuiz() {
                       Recommandations
                     </div>
                     <div className="text-purple-600">
-                      Produits Zinzino ciblés
+                      Des conseils et astuces pour votre améliorer votre sommeil
                     </div>
                   </div>
                 </div>

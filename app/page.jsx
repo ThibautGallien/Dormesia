@@ -75,7 +75,7 @@ export default function HomePage() {
                 size="lg"
                 className="bg-white text-indigo-900 hover:bg-indigo-100"
               >
-                <Link href="/quiz">Évaluez Votre Sommeil</Link>
+                <Link href="/quiz-">Évaluez Votre Sommeil</Link>
               </Button>
               <Button
                 size="lg"
