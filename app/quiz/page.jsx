@@ -4,7 +4,7 @@ import AdvancedSleepQuiz from "@/components/quiz/AdvancedSleepQuiz";
 export const metadata = {
   title: "Quiz IA Avancé - Analyse Complète du Sommeil | Dormesia",
   description:
-    "Découvrez votre profil de sommeil complet avec notre quiz IA avancé de 15 questions. Chronotype scientifique, troubles spécifiques et recommandations Zinzino personnalisées.",
+    "Découvrez votre profil de sommeil complet avec notre quiz IA avancé de 15 questions. Chronotype scientifique, troubles spécifiques et recommandations personnalisées.",
   keywords:
     "quiz sommeil avancé, chronotype, analyse IA, troubles sommeil, Horne-Östberg, profil sommeil",
   openGraph: {
