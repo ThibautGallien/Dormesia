@@ -117,7 +117,7 @@ export default function HomePage() {
           </div>
           <div className="relative rounded-xl overflow-hidden h-[400px]">
             <Image
-              src="https://images.pexels.com/photos/6583582/pexels-photo-6583582.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2"
+              src="/images/hero/hero1.webp"
               alt="Personne dormant paisiblement"
               fill
               className="object-cover"
@@ -168,7 +168,7 @@ export default function HomePage() {
           <Card className="overflow-hidden transition-all hover:shadow-lg">
             <div className="relative h-48">
               <Image
-                src="https://images.pexels.com/photos/17499246/pexels-photo-17499246/free-photo-of-femme-lit-sommeil-dormir.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2"
+                src="/images/articles/article1.webp"
                 alt="Les phases du sommeil"
                 fill
                 className="object-cover"

@@ -10,30 +10,6 @@ export const metadata = {
 };
 
 export default function AboutPage() {
-  const teamMembers = [
-    {
-      name: "Dr. Marie Laurent",
-      role: "Spécialiste du Sommeil",
-      image:
-        "https://images.pexels.com/photos/5327585/pexels-photo-5327585.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2",
-      bio: "Médecin spécialisée en troubles du sommeil, 15 ans d'expérience clinique",
-    },
-    {
-      name: "Pierre Dubois",
-      role: "Nutritionniste",
-      image:
-        "https://images.pexels.com/photos/5490276/pexels-photo-5490276.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2",
-      bio: "Expert en nutrition et son impact sur le sommeil et le rythme circadien",
-    },
-    {
-      name: "Sophie Martin",
-      role: "Psychologue",
-      image:
-        "https://images.pexels.com/photos/5325840/pexels-photo-5325840.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2",
-      bio: "Spécialiste des thérapies comportementales pour améliorer la qualité du sommeil",
-    },
-  ];
-
   return (
     <div className="pt-16">
       {/* Hero Section */}
@@ -140,44 +116,6 @@ export default function AboutPage() {
               </CardContent>
             </Card>
           </div>
-        </div>
-      </section>
-
-      {/* Team Section */}
-      <section className="container mx-auto px-4 py-16 md:py-24">
-        <div className="text-center max-w-3xl mx-auto mb-12">
-          <h2 className="text-3xl md:text-4xl font-playfair font-bold text-indigo-900 dark:text-indigo-300 mb-4">
-            Notre Équipe d'Experts
-          </h2>
-          <p className="text-lg text-gray-700 dark:text-gray-300">
-            Des professionnels passionnés qui contribuent à notre mission
-            d'améliorer votre sommeil.
-          </p>
-        </div>
-
-        <div className="grid md:grid-cols-3 gap-8">
-          {teamMembers.map((member, index) => (
-            <Card
-              key={index}
-              className="overflow-hidden transition-all hover:shadow-lg"
-            >
-              <div className="relative h-64">
-                <Image
-                  src={member.image}
-                  alt={member.name}
-                  fill
-                  className="object-cover"
-                />
-              </div>
-              <CardContent className="p-6">
-                <h3 className="text-xl font-bold mb-1">{member.name}</h3>
-                <p className="text-indigo-600 dark:text-indigo-400 mb-3">
-                  {member.role}
-                </p>
-                <p className="text-gray-700 dark:text-gray-300">{member.bio}</p>
-              </CardContent>
-            </Card>
-          ))}
         </div>
       </section>
 

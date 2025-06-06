@@ -22,8 +22,7 @@ export default function ArticlesPage() {
       excerpt:
         "Découvrez les différentes phases du sommeil et leur importance pour votre santé globale.",
       category: "science-sommeil",
-      image:
-        "https://images.pexels.com/photos/17499246/pexels-photo-17499246/free-photo-of-femme-lit-sommeil-dormir.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2",
+      image: "/images/articles/article1.webp",
       date: "12 avril 2024",
       slug: "phases-du-sommeil",
     },
